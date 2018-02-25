@@ -1,13 +1,16 @@
+# -*- coding: latin-1 -*-
+
 from pprint import pprint
 from time import gmtime, strftime
 import face_recognition
 import time
 import cv2
 import json
+import io
 
 db_location = "people.json"
 
-def print_cool_text():
+def print_cool_text(): #generated via http://patorjk.com/software/taag
     print "__          __  _                               _______    "
     print "\ \        / / | |                             |__   __|   "
     print " \ \  /\  / /__| | ___ ___  _ __ ___   ___        | | ___  "
@@ -21,13 +24,12 @@ def print_cool_text():
     print "   \  /  | \__ \ | (_) | | | |/ ____ \| | |_) | | | | (_| |"
     print "    \/   |_|___/_|\___/|_| |_/_/    \_\_| .__/|_| |_|\__,_|"
     print "                                        | |                "
-    print "                                        |_|                \n\n"
+    print "                                        |_|                "
 
 
 def recognize_people(ip=False):
-    #The program combines the
     if ip:
-        print "Usage guide:"
+        print "IP Camera guide:"
         print " 1) Type in the ip of destination"
         print " 2) Put in the port number, if none, hit enter."
         print " 3) Type the username that you use to log in with."
@@ -38,21 +40,20 @@ def recognize_people(ip=False):
         user_password = raw_input(" 4) Password asked for the authorization:")
         stream_link = raw_input( "5) Live stream link of the camera:")
         video_capture = cv2.VideoCapture("http://"+user_name+":"+user_password+"@"+camera_ip+":"+port_number+"/"+stream_link)
-        #Sums up the given information like
     else:
         #Default port of a built-in laptop camera is 0.
         video_capture = cv2.VideoCapture(0)
-
+        
     # Load a sample picture and learn how to recognize it.
     data = fetch_users_table()
     known_face_names, usr_path = skim_dict(data, "name"), skim_dict(data, "path")
     known_face_encodings = [face_recognition.face_encodings(face_recognition.load_image_file(usr_im))[0] for usr_im in usr_path]
-
+    
     face_locations = []
     face_encodings = []
     face_names = []
     process_this_frame = True
-
+    
     while True:
         # Grab a single frame of video
         ret, frame = video_capture.read()
@@ -77,7 +78,7 @@ def recognize_people(ip=False):
                 if True in match:
                     match_index = match.index(True)
                     name = known_face_names[match_index]
-
+                
                 print(name + " " + strftime("%Y-%m-%d %H:%M:%S", gmtime()) + ' logged in.')
                 face_names.append((name.split(" ")[0]))
 
@@ -100,16 +101,17 @@ def recognize_people(ip=False):
             font = cv2.FONT_HERSHEY_DUPLEX
             cv2.putText(frame, name, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
 
-        # Display video_capture.
+        # Display the resulting image
         cv2.imshow('Video', frame)
 
-        # Hit 'q' on keyboard to quit.
+        # Hit 'q' on the keyboard to quit.
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
     # Release the webcam
     video_capture.release()
     cv2.destroyAllWindows()
+
 
 
 def add_user(camera_port=0):
@@ -119,33 +121,37 @@ def add_user(camera_port=0):
     time.sleep(1)#There is a 1 second sleep for the camera, because less will cause a black photo.(Camera takes the photo really fast, that's why.)
     return_value, image = camera.read()
     name = raw_input("User's Name: ")#Asks for the username.
-    path = "users/" + name + ".jpg"#Saves the photo in the VisionAlpha-master/users file with the .jpg extension
+    path = "users/" + str(count_users()) + ".jpg"#Saves the photo in the VisionAlpha-master/users file with the .jpg extension
     cv2.imwrite(path, image)#writes the image and the path.
     del(camera)#Deletes the camera procss.
     db_add_user(name, path)#Saves the given information to people.json file.
 
+
 #db functions
 def db_add_user(name, path):
-    with open(db_location, "r") as json_file:
-        data = json.load(json_file)
-        json_file.close()
-    data.update({str(count_users()+1):{"name": name, "path": path}})
+    data = fetch_users_table()
+    data.update({str(count_users()):{"name": name, "path": path}})
 
-    with open(db_location, "w") as json_file:
-        json_file.write(json.dumps(data))
+    with io.open(db_location, "w", encoding="utf8") as json_file:
+        json_file.write(json.dumps(data, ensure_ascii=False))
         json_file.close()
+
 
 def count_users():
-    with open(db_location, "r") as json_file:
-        data = json.load(json_file)
-        json_file.close()
-        return len(data)
+    data = fetch_users_table()
+    return len(data)
+
 
 def print_users():
-    with open(db_location, "r") as json_file:
-        data = json.load(json_file)
+    data = fetch_users_table()
+    print "\n"
+    for id in sorted(data.iterkeys()): #sort dict
+        print id + "\t" + data[id]["path"] + "\t" + data[id]["name"]
+    print "\n\n"
+    with io.open(db_location, "w", encoding="utf-8") as json_file: #update db with sorted and beautified version
+        json_file.write(json.dumps(data, ensure_ascii=False, indent=4, sort_keys=True))
         json_file.close()
-        pprint(data)
+
 
 def delete_user(id=-1):
     print("-1 to cancel")
@@ -157,15 +163,12 @@ def delete_user(id=-1):
     else:
         del_usr = select_user(id)
         print("The user " + del_usr + " is going to be deleted. Are you sure?")
-        print("Press 1 to delete user, 0 to cancel")
-        if cv2.waitKey(1) & 0xFF == ord("1"):
-            with open(db_location, "r") as json_file:
-                data = json.load(json_file)
-                json_file.close()
+        if raw_input("Press 1 to delete user, 0 to cancel") == 1:
+            data = fetch_users_table()
             data[id]["name"] = "NULL"
             data[id]["path"] = "users/NULL.jpg"
-            with open(db_location, "w") as json_file:
-                json_file.write(json.dumps(data))
+            with io.open(db_location, "w", encoding="latin1") as json_file:
+                json_file.write(json.dumps(data, ensure_ascii=False))
                 json_file.close()
             print("Delete successful.")
         else:
@@ -173,30 +176,31 @@ def delete_user(id=-1):
 
 
 def select_user(id):
-    with open(db_location, "r") as json_file:
-        data = json.load(json_file)
-        json_file.close()
+    data = fetch_users_table()
     return data[id]["name"]
 
+
 def fetch_users_table():
-    with open(db_location, "r") as json_file:
+    with io.open(db_location, "r", encoding="utf8") as json_file:
         data = json.load(json_file)
         json_file.close()
     return data
+
 
 def skim_dict(data, param):
     skimmed = [data[val][param] for val in data]
     return skimmed
 
-def run_program(): #The main part where it asks you to choose an option, the terminates the assigned process.
+
+def run_program(): #main program
     print_cool_text()
     while True:
-        print "Option 1: Face recognition from your camera,"
-        print "Option 2: Face recognition from ip camera,"
-        print "Option 3: Print user database,"#Prints out people.json.
-        print "Option 4: Add new user,"#Adds user to people.json.
-        print "Option 5: Remove a pre-existing user,"#Removes person from people.json.
-        print "Option 6: Quit"#Quits the program.
+        print "\nOption 1: Face recognition from your camera"   #Recognizes faces from an default camera
+        print "Option 2: Face recognition from an ip camera"    #Recognizes faces from an ip camera
+        print "Option 3: Print user database"                   #Prints json database.
+        print "Option 4: Add new user"                          #Adds a user to the system.
+        print "Option 5: Remove a pre-existing user"            #Removes a user from the system.
+        print "Option 6: Quit"                                  #Quits the program.
         usr_in = raw_input()
         if usr_in == "1":
             recognize_people()
@@ -210,7 +214,8 @@ def run_program(): #The main part where it asks you to choose an option, the ter
             delete_user()
         elif usr_in == "6":
             print "Goodbye!"
-            sys.exit()
+            break
 
 #run the program
 run_program()
+
