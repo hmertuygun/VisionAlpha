@@ -1,4 +1,4 @@
-# -*- coding: latin-1 -*-
+# -*- coding: utf-8 -*-
 
 from pprint import pprint
 from time import gmtime, strftime
@@ -38,7 +38,7 @@ def recognize_people(ip=False):
         port_number = raw_input(" 2) Port Number:")
         user_name = raw_input(" 3) Username asked for authentication:")
         user_password = raw_input(" 4) Password asked for the authorization:")
-        stream_link = raw_input( "5) Live stream link of the camera:")
+        stream_link = raw_input( " 5) Live stream link of the camera:")
         video_capture = cv2.VideoCapture("http://"+user_name+":"+user_password+"@"+camera_ip+":"+port_number+"/"+stream_link)
     else:
         #Default port of a built-in laptop camera is 0.
@@ -79,8 +79,8 @@ def recognize_people(ip=False):
                     match_index = match.index(True)
                     name = known_face_names[match_index]
                 
-                print(name + " " + strftime("%Y-%m-%d %H:%M:%S", gmtime()) + ' logged in.')
-                face_names.append((name.split(" ")[0]))
+                print name.decode("utf-8") + " " + strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " logged in."
+                face_names.append(name.split(" ")[0])
 
         process_this_frame = not process_this_frame
 
@@ -132,7 +132,7 @@ def db_add_user(name, path):
     data = fetch_users_table()
     data.update({str(count_users()):{"name": name, "path": path}})
 
-    with io.open(db_location, "w", encoding="utf8") as json_file:
+    with io.open(db_location, "w", encoding="utf-8") as json_file:
         json_file.write(json.dumps(data, ensure_ascii=False))
         json_file.close()
 
@@ -167,7 +167,7 @@ def delete_user(id=-1):
             data = fetch_users_table()
             data[id]["name"] = "NULL"
             data[id]["path"] = "users/NULL.jpg"
-            with io.open(db_location, "w", encoding="latin1") as json_file:
+            with io.open(db_location, "w", encoding="utf-8") as json_file:
                 json_file.write(json.dumps(data, ensure_ascii=False))
                 json_file.close()
             print("Delete successful.")
@@ -181,14 +181,14 @@ def select_user(id):
 
 
 def fetch_users_table():
-    with io.open(db_location, "r", encoding="utf8") as json_file:
+    with io.open(db_location, "r", encoding="utf-8") as json_file:
         data = json.load(json_file)
         json_file.close()
     return data
 
 
 def skim_dict(data, param):
-    skimmed = [data[val][param] for val in data]
+    skimmed = [data[val][param].encode("utf-8") for val in data]
     return skimmed
 
 
