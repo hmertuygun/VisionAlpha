@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 
 from pprint import pprint
-from time import gmtime, strftime
+from time import localtime, strftime
 import face_recognition
-import time
 import cv2
 import json
 import io
@@ -27,7 +26,7 @@ def print_cool_text(): #generated via http://patorjk.com/software/taag
     print "                                        |_|                "
 
 
-def recognize_people(ip=False):
+def recognize_people(ip=False, speed_over_accuracy=False):
     if ip:
         print "IP Camera guide:"
         print " 1) Type in the ip of destination"
@@ -58,8 +57,12 @@ def recognize_people(ip=False):
         # Grab a single frame of video
         ret, frame = video_capture.read()
 
-        # Resize frame of video to 1/4 size for faster face recognition processing
-        small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
+        if speed_over_accuracy:
+            # Resize frame of video to 1/4 size for faster face recognition processing
+            small_frame = cv2.resize(frame, (0,0), fx=0.25, fy=0.25)
+        else:
+            # Create small frame without resizing video stream for more accurate face recognition
+            small_frame = cv2.resize(frame, (0, 0), fx=1, fy=1)
 
         # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
         rgb_small_frame = small_frame[:, :, ::-1]
@@ -79,7 +82,7 @@ def recognize_people(ip=False):
                     match_index = match.index(True)
                     name = known_face_names[match_index]
                 
-                print name.decode("utf-8") + " " + strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " logged in."
+                print name.decode("utf-8") + " " + strftime("%Y-%m-%d %H:%M:%S", localtime()) + " logged in."
                 face_names.append(name.split(" ")[0])
 
         process_this_frame = not process_this_frame
@@ -87,11 +90,13 @@ def recognize_people(ip=False):
 
         # Display the results
         for (top, right, bottom, left), name in zip(face_locations, face_names):
-            # Scale back up face locations since the frame we detected in was scaled to 1/4 size
-            top *= 4
-            right *= 4
-            bottom *= 4
-            left *= 4
+            if speed_over_accuracy:
+                # Scale back up face locations since the frame we detected in was scaled to 1/4 size
+                top *= 4
+                right *= 4
+                bottom *= 4
+                left *= 4
+            # There is no need for this process if there was no resizing
 
             # Draw a box around the face
             #cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
@@ -99,13 +104,13 @@ def recognize_people(ip=False):
             # Draw a label with a name below the face
             cv2.rectangle(frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED)
             font = cv2.FONT_HERSHEY_DUPLEX
-            cv2.putText(frame, name, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
+            cv2.putText(frame, name, (left + 5, bottom - 5), font, 0.8, (255, 255, 255), 1)
 
         # Display the resulting image
-        cv2.imshow('Video', frame)
+        cv2.imshow("Video", frame)
 
         # Hit 'q' on the keyboard to quit.
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+        if cv2.waitKey(1) & 0xFF == ord("q"):
             break
 
     # Release the webcam
