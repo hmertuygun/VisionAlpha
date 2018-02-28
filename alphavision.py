@@ -38,10 +38,29 @@ def recognize_people(ip=False, speed_over_accuracy=False):
         user_name = raw_input(" 3) Username asked for authentication:")
         user_password = raw_input(" 4) Password asked for the authorization:")
         stream_link = raw_input( " 5) Live stream link of the camera:")
-        video_capture = cv2.VideoCapture("http://"+user_name+":"+user_password+"@"+camera_ip+":"+port_number+"/"+stream_link)
+        
+        video_hash = "http://"
+        if (user_name is not None) and (user_password is not None):
+            video_hash += user_name + ":" + user_password + "@"
+        video_hash += camera_ip
+        if port_number is not None and port_number is not "":
+            video_hash += ":" + port_number
+        if stream_link is not None:
+            video_hash += "/" + stream_link
+
+        print "Attempting to connect to: \"" + video_hash + "\""
+        try:
+            video_capture = cv2.VideoCapture(video_hash)
+        except:
+            print "Connection failed!\n"
+            return
     else:
         #Default port of a built-in laptop camera is 0.
-        video_capture = cv2.VideoCapture(0)
+        try:
+            video_capture = cv2.VideoCapture(0)
+        except:
+            print "Error activating camera."
+            return
         
     # Load a sample picture and learn how to recognize it.
     data = fetch_users_table()
