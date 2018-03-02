@@ -202,7 +202,7 @@ def add_user(camera_port=0):
     camera = cv2.VideoCapture(camera_port)#Port is assigned as the value in the parameter. The default value is 0.
     time.sleep(1)#There is a 1 second sleep for the camera, because less will cause a black photo.(Camera takes the photo really fast, that's why.)
     return_value, image = camera.read()
-    del(camera)#Deletes the camera procss.
+    del(camera)#Deletes the camera process.
     name = raw_input("User's Name: ")#Asks for the username.
     path = "users/" + str(count_users()) + ".jpg"#Saves the photo in the VisionAlpha-master/users file with the .jpg extension
     cv2.imwrite(path, image)#writes the image and the path.
@@ -307,7 +307,7 @@ def fetch_logs():
             log = json.load(logs_json_file)
             logs_json_file.close()
         except:
-            log = dict()
+            log = dict() #requires a fix atm
             if log == "" or log is None or log == "\"{}\"":
                 log = dict()
                 logs_json_file.close()
