@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 
-from pprint import pprint
 from time import localtime, strftime
 import time
 import face_recognition
 import cv2
 import json
 import io
+import locale
 
 db_location = "people.json"
 logs_db = "logs.json"
@@ -203,16 +203,17 @@ def add_user(camera_port=0):
     time.sleep(1)#There is a 1 second sleep for the camera, because less will cause a black photo.(Camera takes the photo really fast, that's why.)
     return_value, image = camera.read()
     del(camera)#Deletes the camera process.
-    name = raw_input("User's Name: ")#Asks for the username.
+    name = raw_input("User's Name: ").decode(locale.getpreferredencoding())#Asks for the username.
     path = "users/" + str(count_users()) + ".jpg"#Saves the photo in the VisionAlpha-master/users file with the .jpg extension
     cv2.imwrite(path, image)#writes the image and the path.
+    print name
     db_add_user(name, path)#Saves the given information to database file.
 
 
 #db functions
 def db_add_user(name, path):
     data = fetch_users_table()
-    data.update({str(count_users()):{"name": name, "path": path}})
+    data.update({unicode(len(data)):{"name":name, "path": path}})
     with io.open(db_location, "w", encoding="utf-8") as users_json_file:
         users_json_file.write(json.dumps(data, ensure_ascii=False, indent=4, sort_keys=True))
         users_json_file.close()
@@ -236,13 +237,13 @@ def delete_user(id=-1):
     print("-1 to cancel")
     if id is None or -1:
         print_users()
-        id = raw_input("\n What is the id of the user to be deleted?")
+        id = raw_input("\n What is the id of the user to be deleted?").decode(locale.getpreferredencoding())
     if str(id) == "-1":
         print("Process terminated.")
     else:
         del_usr = select_user(id)
         print("The user " + del_usr + " is going to be deleted. Are you sure?")
-        if raw_input("Press 1 to delete user, 0 to cancel") == "1":
+        if raw_input("Press 1 to delete user, 0 to cancel").decode(locale.getpreferredencoding()) == "1":
             data = fetch_users_table()
             data[id]["name"] = "NULL"
             data[id]["path"] = "users/NULL.jpg"
@@ -264,7 +265,7 @@ def fetch_users_table():
         try:
             data = json.load(users_json_file)
             users_json_file.close()
-        except:
+        except ValueError:
             data = users_json_file.read()
             if data == "" or data is None:
                 data = dict()
@@ -287,7 +288,7 @@ def skim_dict(data, param):
 def add_logs(name):
     current_time = strftime("%Y-%m-%d %H:%M:%S", localtime())
     log = fetch_logs()
-    log.update({str(len(log)):{"time":current_time, "name":name}})
+    log.update({unicode(len(log)):{"time":current_time, "name":name}})
     with io.open(logs_db, "w", encoding="utf-8") as logs_json_file:
         logs_json_file.write(json.dumps(log, ensure_ascii=False, indent=4, sort_keys=True))
         logs_json_file.close()
@@ -306,8 +307,8 @@ def fetch_logs():
         try:
             log = json.load(logs_json_file)
             logs_json_file.close()
-        except:
-            log = dict() #requires a fix atm
+        except ValueError:
+            log = logs_json_file.read()
             if log == "" or log is None or log == "\"{}\"":
                 log = dict()
                 logs_json_file.close()
@@ -331,7 +332,7 @@ def run_program(): #main program
         print "Option 5: Remove a pre-existing user"            #Removes a user from the system.
         print "Option 6: Print user logs"                       #Prints the log database
         print "Option 7: Quit"                                  #Quits the program.
-        usr_in = raw_input()
+        usr_in = raw_input().decode(locale.getpreferredencoding())
         if usr_in == "1":
             recognize_people()
         elif usr_in == "2":
