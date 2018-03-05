@@ -122,8 +122,8 @@ def recognize_people(ip=False, speed_over_accuracy=False):
                         return
                     unseen_people = {key:value+2 for key, value in unseen_people.items()}
                     for delperson in unseen_people.keys():
-                        if unseen_people[delperson] > 30:
-                            if online_people[delperson] > 5:
+                        if unseen_people[delperson] >= 30: #condition for determining someone gone
+                            if online_people[delperson] >= 5: #condition for determining someone seen
                                 add_logs(delperson)
                             unseen_people.pop(delperson, None)
                             online_people.pop(delperson, None)
@@ -150,8 +150,8 @@ def recognize_people(ip=False, speed_over_accuracy=False):
                     unseen_people.update({key:0})
             unseen_people = {key:value+1 for key, value in unseen_people.iteritems()}
             for delperson in unseen_people.keys():
-                if unseen_people[delperson] > 30:
-                    if online_people[delperson] > 5:
+                if unseen_people[delperson] >= 30: #condition for determining someone gone
+                    if online_people[delperson] >= 5: #condition for determining someone seen
                         add_logs(delperson)
                     unseen_people.pop(delperson, None)
                     online_people.pop(delperson, None)
@@ -184,9 +184,9 @@ def recognize_people(ip=False, speed_over_accuracy=False):
             return
         
         # Hit 'q' on the keyboard to quit.
-        if cv2.waitKey(1) & 0xFF == ord("q"):
+        if cv2.waitKey(1) & 0xFF == ord("q") or cv2.waitKey(1) == 27:
             for person in online_people:
-                if online_people[person] > 5:
+                if online_people[person] >= 5: # final check so as not to miss logs on quit
                     add_logs(person)
             break
 
@@ -227,7 +227,8 @@ def count_users():
 def print_users():
     data = fetch_users_table()
     print "\n"
-    for id in sorted(data.iterkeys()): #sort dict
+    for id in range(len(data)-1):
+        id = unicode(id+1)
         if data[id]["name"] != "NULL":
             print id + "\t" + data[id]["path"] + "\t" + data[id]["name"]
     print "\n\n"
@@ -267,10 +268,11 @@ def fetch_users_table():
             users_json_file.close()
         except ValueError:
             data = users_json_file.read()
-            if data == "" or data is None:
+            if data == "" or data is None: #if database file is empty
                 data = dict()
+                data.update({"0":{"name": "NULL", "path": "users/NULL.jpg"}})
                 users_json_file.close()
-            else:
+            else: #if database file contains non-json data or text
                 print "\t#The database " + db_location + " seems to contain invalid JSON. Please fix it."
                 users_json_file.close()
                 return
@@ -297,7 +299,8 @@ def add_logs(name):
 def print_logs():
     log = fetch_logs()
     print "\n"
-    for id in sorted(log.iterkeys()): #sort dict
+    for id in range(len(log)-1):
+        id = unicode(id+1)
         print id + "\t" + log[id]["time"] + "\t" + log[id]["name"]
     print "\n\n"
 
@@ -309,10 +312,11 @@ def fetch_logs():
             logs_json_file.close()
         except ValueError:
             log = logs_json_file.read()
-            if log == "" or log is None or log == "\"{}\"":
+            if log == "" or log is None: #if database file is empty
                 log = dict()
+                log.update({"0":{"name": "VisionAlpha Devs", "time": strftime("%Y-%m-%d %H:%M:%S", localtime())}})
                 logs_json_file.close()
-            else:
+            else: #if database file contains non-json data or text
                 print "\t#The database " + logs_db + " seems to contain invalid JSON. Please fix it."
                 logs_json_file.close()
                 return
@@ -332,23 +336,29 @@ def run_program(): #main program
         print "Option 5: Remove a pre-existing user"            #Removes a user from the system.
         print "Option 6: Print user logs"                       #Prints the log database
         print "Option 7: Quit"                                  #Quits the program.
-        usr_in = raw_input().decode(locale.getpreferredencoding())
-        if usr_in == "1":
-            recognize_people()
-        elif usr_in == "2":
-            recognize_people(True)
-        elif usr_in == "3":
-            print_users()
-        elif usr_in == "4":
-            add_user()
-        elif usr_in == "5":
-            delete_user()
-        elif usr_in == "6":
-            print_logs()
-        elif usr_in == "7":
+        try:
+            usr_in = raw_input().decode(locale.getpreferredencoding())
+        except KeyboardInterrupt:
             print "Goodbye!"
             break
-
+        try:
+            if usr_in == "1":
+                recognize_people()
+            elif usr_in == "2":
+                recognize_people(True)
+            elif usr_in == "3":
+                print_users()
+            elif usr_in == "4":
+                add_user()
+            elif usr_in == "5":
+                delete_user()
+            elif usr_in == "6":
+                print_logs()
+            elif usr_in == "7":
+                print "Goodbye!"
+                break
+        except KeyboardInterrupt:
+            print "Keyboard interrupt detected. Terminating process..."
 #run the program
 run_program()
 
